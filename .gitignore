@@ -194,3 +194,5 @@ FakesAssemblies/
 
 # Visual Studio 6 workspace options file
 *.opt
+Binder.CLI.Core/app.config
+Binder.CLI.Console/App.config
