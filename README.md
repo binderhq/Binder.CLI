@@ -23,7 +23,7 @@ Unzip the files to a folder and either add that folder to your PATH or change to
 
 **Example commands**
 
-    binder upload -site mysite.binder.com.au -source "C:\var\myfiles\*.*" -destination "/My box/myfolder" -username user@myemail.com -password "mypassword"
+    binder upload -recursive -site mysite.binder.com.au -source "C:\var\myfiles\*.*" -destination "/My box/myfolder" -username user@myemail.com -password "mypassword"
 
     binder dir -site mysite.binder.com.au -source "/My box/myfolder" -username user@myemail.com -password "mypassword"
 
