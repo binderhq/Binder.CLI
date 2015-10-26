@@ -83,6 +83,7 @@
   <ItemGroup>
     <Compile Include="AuthenticationEndpoint.cs" />
     <Compile Include="BinderEcosystem.cs" />
+    <Compile Include="CreateFolderOperation.cs" />
     <Compile Include="Models\BinderSession.cs" />
     <Compile Include="FileAccess\HiggsClient.cs" />
     <Compile Include="FileAccess\IHiggsClient.cs" />
@@ -100,6 +101,7 @@
     <Compile Include="GetRegionOperation.cs" />
     <Compile Include="HttpResponseMessageExtensions.cs" />
     <Compile Include="Models\CheckedOutFileModel.cs" />
+    <Compile Include="Models\CreateFolderRequest.cs" />
     <Compile Include="Models\CreateSessionRequest.cs" />
     <Compile Include="Models\CreateSessionResponse.cs" />
     <Compile Include="Models\CreateSiteFileVersionOptions.cs" />

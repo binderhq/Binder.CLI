@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Binder.API.Models.Region.SiteNavigator;
@@ -79,14 +80,16 @@ namespace Binder.CLI
         }
 
 
+        const int fixedStorageZoneId = 1;
+
+
         [ArgActionMethod, ArgDescription("Upload files or folders")]
         public void upload(UploadArguments uploadArguments)
         {
 
             var site = GetAuthorisedSite();
             var region = site.Region;
-            const int fixedStorageZoneId = 1;
-
+           
             var storageZoneUrl =
                 region.EndpointUrl.AppendPathSegment("StorageZones")
                                     .AppendPathSegment(fixedStorageZoneId.ToString())
@@ -102,15 +105,106 @@ namespace Binder.CLI
                 throw new ApplicationException("Could not access directory in " + uploadArguments.source);
             var pattern = uploadArguments.source.Substring(uploadArguments.source.LastIndexOf('\\') + 1);
 
-            var files = Directory.GetFiles(directory, pattern);
-            Console.WriteLine(files.Length + " files");
-
+          
             StorageEngine storageEngine = StorageEngineFactory.Create(
                 storageZone.HiggsUrl, 
                 region.CurrentRegionModel.PieceCheckerEndpoint,
                 region.CurrentRegionModel.FileCompositionEndpoint,
                 region.CurrentRegionModel.FileRegistrationEndpoint,
                 fixedStorageZoneId);
+
+
+            var files = Directory.GetFiles(directory, pattern);
+            Console.WriteLine(files.Length + " files");
+
+
+            UploadFiles(files, site, storageEngine, uploadArguments.destination);
+
+            Console.WriteLine("Uploading recursively");
+
+            if (uploadArguments.recursive)
+            {
+                foreach (var subDirectory in Directory.GetDirectories(Path.GetDirectoryName(uploadArguments.source)))
+                {
+                    string subDirectoryName = new DirectoryInfo(subDirectory).Name;
+                    string directorySource = Path.GetDirectoryName(uploadArguments.source);
+                    UploadDirectory(storageEngine,site, subDirectoryName, directorySource, uploadArguments.destination);
+                }
+            }
+
+
+
+
+
+
+/**
+            Console.WriteLine("source=" + uploadArguments.source);
+            Console.WriteLine("destination=" + uploadArguments.destination);
+            Console.WriteLine("site=" + this.site);
+            Console.WriteLine("username=" + this.username);
+            Console.WriteLine("subdomain=" + this.Subdomain);
+ * 
+ * **/
+
+
+
+
+        }
+
+
+
+        private void UploadDirectory(StorageEngine storageEngine, Site binderSite, string subDirectoryName, string directorySource, string directoryDestination)
+        {
+
+            try
+            {
+
+
+                Console.WriteLine("Uploading directory " + directorySource + "/" + subDirectoryName);
+
+                var directoryDestinationModel =
+                    new GetFolderOperation(binderSite, directoryDestination, AuthorisedSession).ResponseMessage
+                        .Content<SiteFolderModel>();
+
+                if (directoryDestinationModel.Folders.All(folder => folder.Name.ToLower() != subDirectoryName.ToLower()))
+                {
+                    Console.WriteLine("Creating folder " + subDirectoryName);
+                    var createFolderOperation = new CreateFolderOperation(binderSite, directoryDestination,
+                        AuthorisedSession, subDirectoryName);
+
+                    if (!createFolderOperation.ResponseMessage.IsSuccessStatusCode)
+                    {
+                        throw new ApplicationException("Could not create folder " + subDirectoryName + " - " + createFolderOperation.ResponseMessage.StatusCode);
+                    }
+
+                }
+
+
+                string newSource = Path.Combine(directorySource, subDirectoryName);
+                string newDestination = directoryDestination.TrimEnd('/') + "/" + subDirectoryName;
+
+
+                var files = Directory.GetFiles(newSource, "*.*");
+                Console.WriteLine(files.Length + " files");
+
+                UploadFiles(files, binderSite, storageEngine, newDestination);
+                foreach (var newDirectory in Directory.GetDirectories(newSource))
+                {
+                    string newDirectoryName = new DirectoryInfo(newDirectory).Name;
+                    UploadDirectory(storageEngine, binderSite, newDirectoryName, newSource, newDestination);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("ERROR: Could not upload directory " + subDirectoryName + " - " + ex.Message);
+            }
+
+
+        }
+
+        private void UploadFiles(string[] files, Site binderSite, StorageEngine storageEngine, string destination)
+        {
 
             foreach (var file in files)
             {
@@ -138,12 +232,12 @@ namespace Binder.CLI
                         };
 
 
-                        var url = site.Region.EndpointUrl
+                        var url = binderSite.Region.EndpointUrl
                             .AppendPathSegment("SiteNavigator")
-                            .AppendPathSegment(site.Subdomain)
+                            .AppendPathSegment(binderSite.Subdomain)
                             .AppendPathSegment("Folder")
                             .AppendPathSegment("Files")
-                            .SetQueryParam("path", uploadArguments.destination)
+                            .SetQueryParam("path", destination)
                             .SetQueryParam("api_key", AuthorisedSession.SessionToken);
 
 
@@ -152,7 +246,7 @@ namespace Binder.CLI
                             .ResponseMessage;
 
                         var siteFileModel = addFileResponseMessage.Content<SiteFileModel>();
-                        if (siteFileModel.Length!=fileInfo.Length)
+                        if (siteFileModel.Length != fileInfo.Length)
                             throw new ApplicationException("Uploaded file length does not match");
 
                         Console.WriteLine(addFileResponseMessage.StatusCode.ToString());
@@ -165,20 +259,6 @@ namespace Binder.CLI
                 }
 
             }
-
-
-/**
-            Console.WriteLine("source=" + uploadArguments.source);
-            Console.WriteLine("destination=" + uploadArguments.destination);
-            Console.WriteLine("site=" + this.site);
-            Console.WriteLine("username=" + this.username);
-            Console.WriteLine("subdomain=" + this.Subdomain);
- * 
- * **/
-
-
-
-
         }
 
 
