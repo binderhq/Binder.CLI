@@ -1,6 +1,12 @@
 # Binder.CLI
 Command line interface for carrying out functions on the Binder platform
 
+**Requirements**
+
+For Windows: XP or later with .NET 4.0
+
+For OSX: [Mono](http://www.mono-project.com/) 4.0
+
 **Limitations**
 
 1. Only accesses the Production ecosystem (cannot be set to developer mode)
