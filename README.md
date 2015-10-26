@@ -10,6 +10,7 @@ For OSX: [Mono](http://www.mono-project.com/) 4.0
 **Limitations**
 
 1. Only accesses the Production ecosystem (cannot be set to developer mode)
+2. :warning: ALWAYS WRITES FILES TO STORAGE ZONE 1 regardless of the destination box
 2. Source must be a either the path to a file, or the path to a wildcard spec of some files 
 3. Destination must be the path, within the site, of an existing folder
 4. Site must be the full hostname of the site
