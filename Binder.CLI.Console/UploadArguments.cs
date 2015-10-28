@@ -21,7 +21,7 @@ namespace Binder.CLI
         [ArgExample(@"/MyFolder/MyOtherFolder","")]
         public string destination { get; set; }
 
-        [ArgDefaultValue(true)]
+        [ArgDefaultValue(false)]
         [ArgDescription(@"Also upload all subdirectories and all files in those subdirectories")]
         public bool recursive { get; set; }
 // ReSharper restore InconsistentNaming
