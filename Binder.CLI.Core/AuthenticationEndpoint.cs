@@ -15,6 +15,7 @@ namespace Binder.CLI.Core
 
 
 
+
         public BinderSession CreateSession(string username, string clearTextPassword)
         {
             var req = new CreateSessionRequest()

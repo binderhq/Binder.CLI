@@ -1,4 +1,5 @@
 ﻿using PowerArgs;
+using System;
 
 namespace Binder.CLI
 {
@@ -6,8 +7,8 @@ namespace Binder.CLI
     {
         private static void Main(string[] args)
         {
-
-            Args.InvokeAction<CommandLineArguments>(args);
+			Args.InvokeAction<CommandLineArguments>(args);
+            Console.ReadKey();
         }
 
     }
