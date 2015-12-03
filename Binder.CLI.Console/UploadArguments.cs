@@ -24,6 +24,10 @@ namespace Binder.CLI
         [ArgDefaultValue(false)]
         [ArgDescription(@"Also upload all subdirectories and all files in those subdirectories")]
         public bool recursive { get; set; }
+
+		[ArgDefaultValue(false)]
+		[ArgDescription(@"Force upload to check all pieces instead of just checking timestamps")]
+		public bool force { get; set; }
 // ReSharper restore InconsistentNaming
 
 

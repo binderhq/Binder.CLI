@@ -117,7 +117,7 @@ namespace Binder.CLI
 			var files = Directory.GetFiles(directory, pattern);
 			Console.WriteLine(files.Length + " files");
 
-			UploadFiles(files, site, storageEngine, uploadArguments.destination);
+			UploadFiles(files, site, storageEngine, uploadArguments.destination, uploadArguments.force);
 
 			Console.WriteLine("Uploading recursively");
 
@@ -127,7 +127,7 @@ namespace Binder.CLI
 				{
 					string subDirectoryName = new DirectoryInfo(subDirectory).Name;
 					string directorySource = Path.GetDirectoryName(uploadArguments.source);
-					UploadDirectory(storageEngine,site, subDirectoryName, directorySource, uploadArguments.destination);
+					UploadDirectory(storageEngine,site, subDirectoryName, directorySource, uploadArguments.destination, uploadArguments.force);
 				}
 			}
 
@@ -152,14 +152,14 @@ namespace Binder.CLI
 
 
 
-		private void UploadDirectory(StorageEngine storageEngine, Site binderSite, string subDirectoryName, string directorySource, string directoryDestination)
+		private void UploadDirectory(StorageEngine storageEngine, Site binderSite, string subDirectoryName, string directorySource, string directoryDestination, bool force)
 		{
 
 			try
 			{
 
 
-				Console.WriteLine("Uploading directory " + directorySource + "/" + subDirectoryName);
+				Console.WriteLine("Uploading directory " + directorySource + "\\" + subDirectoryName);
 
 				var directoryDestinationModel =
 					new GetFolderOperation(binderSite, directoryDestination, AuthorisedSession).ResponseMessage
@@ -186,11 +186,11 @@ namespace Binder.CLI
 				var files = Directory.GetFiles(newSource, "*.*");
 				Console.WriteLine(files.Length + " files");
 
-				UploadFiles(files, binderSite, storageEngine, newDestination);
+				UploadFiles(files, binderSite, storageEngine, newDestination, force);
 				foreach (var newDirectory in Directory.GetDirectories(newSource))
 				{
 					string newDirectoryName = new DirectoryInfo(newDirectory).Name;                    
-					UploadDirectory(storageEngine, binderSite, newDirectoryName, newSource, newDestination);
+					UploadDirectory(storageEngine, binderSite, newDirectoryName, newSource, newDestination, force);
 				}
 
 			}
@@ -202,12 +202,10 @@ namespace Binder.CLI
 
 		}
 
-		private void UploadFiles(string[] files, Site binderSite, StorageEngine storageEngine, string destination)
+		private void UploadFiles(string[] files, Site binderSite, StorageEngine storageEngine, string destination, bool force)
 		{
-			int loopNumber = -1;
 			foreach (var file in files)
 			{
-				loopNumber++;
 				//string directoryName = Path.GetDirectoryName(file);
 				string fileName = Path.GetFileName(file);
 
@@ -217,20 +215,21 @@ namespace Binder.CLI
 
 				try
 				{   
-	
 					var site = GetAuthorisedSite();
 					var folderResponseMessage =
 					   new GetFolderOperation(site, destination, AuthorisedSession).ResponseMessage;
 					var siteFolderModel = folderResponseMessage.Content<SiteFolderModel>();
-	
+
+					//find file with exact same filename
 					var x = siteFolderModel.Files.Where(s => s.Name == fileInfo.Name).FirstOrDefault();
 
-					if (x != null)
+					//if found, compare the tick rates. If they're close enough, assume they're the same and don't bother uploading the file
+					if (x != null && !force)
 					{
 						var tickDifference = fileInfo.LastWriteTimeUtc.Ticks - x.LastWriteTimeUtc.Ticks;
 						if (tickDifference < 5000000 && tickDifference > -5000000)
 						{
-							throw new ApplicationException("File unchanged");
+							throw new ApplicationException("Files are identical.");
 						}
 					}
 
@@ -266,10 +265,12 @@ namespace Binder.CLI
 							.ResponseMessage;
 						
 						var siteFileModel = addFileResponseMessage.Content<SiteFileModel>();
-						
+
+						if (!addFileResponseMessage.IsSuccessStatusCode)
+							throw new ApplicationException("ERROR: Could not upload file - " + addFileResponseMessage.StatusCode);
 
 						if (siteFileModel.Length != fileInfo.Length)
-							throw new ApplicationException("Uploaded file length does not match");
+							throw new ApplicationException("ERROR: Uploaded file length does not match");
 
 						Console.WriteLine(addFileResponseMessage.StatusCode.ToString());
 
@@ -277,7 +278,7 @@ namespace Binder.CLI
 				}
 				catch (Exception ex)
 				{
-					Console.WriteLine("ERROR: " + ex.Message);
+					Console.WriteLine(ex.Message);
 				}
 
 			}
