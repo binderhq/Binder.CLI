@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using Binder.API.Models.Region.SiteNavigator;
 using Binder.API.Region.Foundation.FileAccess;
 using Binder.API.Region.RegionServices.Data.DTOs;
@@ -81,11 +83,21 @@ namespace Binder.CLI
 
 
 		const int fixedStorageZoneId = 1;
-
+		public List<List<String>> csvData = new List<List<string>>();
 
 		[ArgActionMethod, ArgDescription("Upload files or folders")]
 		public void upload(UploadArguments uploadArguments)
 		{
+			if (uploadArguments.csv != null)
+			{
+				List<string> headerInfo = new List<string>();
+				headerInfo.Add("Filename");
+				headerInfo.Add("Path");
+				headerInfo.Add("Size (B)");
+				headerInfo.Add("Last time modified");
+				headerInfo.Add("Upload status");
+				csvData.Add(headerInfo);
+			}
 
 			var site = GetAuthorisedSite();
 			var region = site.Region;
@@ -117,7 +129,7 @@ namespace Binder.CLI
 			var files = Directory.GetFiles(directory, pattern);
 			Console.WriteLine(files.Length + " files");
 
-			UploadFiles(files, site, storageEngine, uploadArguments.destination, uploadArguments.force);
+			UploadFiles(files, site, storageEngine, uploadArguments.destination, uploadArguments.force, uploadArguments.csv != null);
 
 			Console.WriteLine("Uploading recursively");
 
@@ -127,11 +139,30 @@ namespace Binder.CLI
 				{
 					string subDirectoryName = new DirectoryInfo(subDirectory).Name;
 					string directorySource = Path.GetDirectoryName(uploadArguments.source);
-					UploadDirectory(storageEngine,site, subDirectoryName, directorySource, uploadArguments.destination, uploadArguments.force);
+					UploadDirectory(storageEngine,site, subDirectoryName, directorySource, uploadArguments.destination, uploadArguments.force, uploadArguments.csv != null);
 				}
 			}
 
-
+			if (uploadArguments.csv != null)
+			{
+				Console.WriteLine("Generating .csv file...");
+				
+				int length = csvData.Count;
+				StringBuilder sb = new StringBuilder();
+				
+				for (int index = 0; index < length; index++)
+					sb.AppendLine(string.Join(",", csvData[index]));
+				try
+				{
+					File.WriteAllText(uploadArguments.csv, sb.ToString());
+					Console.WriteLine(".csv file creating in directory " + uploadArguments.csv);
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine(ex.Message);
+				}
+				
+			}
 
 
 
@@ -147,12 +178,11 @@ namespace Binder.CLI
 
 
 
-
 		}
 
 
 
-		private void UploadDirectory(StorageEngine storageEngine, Site binderSite, string subDirectoryName, string directorySource, string directoryDestination, bool force)
+		private void UploadDirectory(StorageEngine storageEngine, Site binderSite, string subDirectoryName, string directorySource, string directoryDestination, bool force, bool csv)
 		{
 
 			try
@@ -186,11 +216,11 @@ namespace Binder.CLI
 				var files = Directory.GetFiles(newSource, "*.*");
 				Console.WriteLine(files.Length + " files");
 
-				UploadFiles(files, binderSite, storageEngine, newDestination, force);
+				UploadFiles(files, binderSite, storageEngine, newDestination, force, csv);
 				foreach (var newDirectory in Directory.GetDirectories(newSource))
 				{
 					string newDirectoryName = new DirectoryInfo(newDirectory).Name;                    
-					UploadDirectory(storageEngine, binderSite, newDirectoryName, newSource, newDestination, force);
+					UploadDirectory(storageEngine, binderSite, newDirectoryName, newSource, newDestination, force, csv);
 				}
 
 			}
@@ -202,12 +232,13 @@ namespace Binder.CLI
 
 		}
 
-		private void UploadFiles(string[] files, Site binderSite, StorageEngine storageEngine, string destination, bool force)
+		private void UploadFiles(string[] files, Site binderSite, StorageEngine storageEngine, string destination, bool force, bool csv)
 		{
 			foreach (var file in files)
 			{
 				//string directoryName = Path.GetDirectoryName(file);
 				string fileName = Path.GetFileName(file);
+				string statusMessage = "";
 
 				Console.Write(fileName.PadRight(45) + " ");
 
@@ -221,12 +252,12 @@ namespace Binder.CLI
 					var siteFolderModel = folderResponseMessage.Content<SiteFolderModel>();
 
 					//find file with exact same filename
-					var x = siteFolderModel.Files.Where(s => s.Name == fileInfo.Name).FirstOrDefault();
+					var uploadedFile = siteFolderModel.Files.Where(s => s.Name == fileInfo.Name).FirstOrDefault();
 
 					//if found, compare the tick rates. If they're close enough, assume they're the same and don't bother uploading the file
-					if (x != null && !force)
+					if (uploadedFile != null && !force)
 					{
-						var tickDifference = fileInfo.LastWriteTimeUtc.Ticks - x.LastWriteTimeUtc.Ticks;
+						var tickDifference = fileInfo.LastWriteTimeUtc.Ticks - uploadedFile.LastWriteTimeUtc.Ticks;
 						if (tickDifference < 5000000 && tickDifference > -5000000)
 						{
 							throw new ApplicationException("Files are identical.");
@@ -238,6 +269,7 @@ namespace Binder.CLI
 					{
 					   
 						var storageResponse = storageEngine.StoreFile(fileStream);
+						//storageResponse.Length
 						var options = new CreateSiteFileVersionOptions()
 						{
 							Length = fileInfo.Length,
@@ -257,7 +289,7 @@ namespace Binder.CLI
 							.AppendPathSegment("Files")
 							.SetQueryParam("path", destination)
 							.SetQueryParam("api_key", AuthorisedSession.SessionToken);
-						
+
 						//check rem dir and get dirrctory info
 
 						var addFileResponseMessage = new PutOperation<CreateSiteFileVersionOptions>(url)
@@ -272,15 +304,28 @@ namespace Binder.CLI
 						if (siteFileModel.Length != fileInfo.Length)
 							throw new ApplicationException("ERROR: Uploaded file length does not match");
 
-						Console.WriteLine(addFileResponseMessage.StatusCode.ToString());
+						statusMessage = addFileResponseMessage.StatusCode.ToString();
+						Console.WriteLine(statusMessage);
+
 
 					}
+					
 				}
 				catch (Exception ex)
 				{
 					Console.WriteLine(ex.Message);
+					statusMessage = ex.Message;
 				}
-
+				if (csv)
+				{
+					List<string> uploadInfo = new List<string>();
+					uploadInfo.Add(fileInfo.Name.ToString());
+					uploadInfo.Add(fileInfo.DirectoryName.ToString());
+					uploadInfo.Add(fileInfo.Length.ToString());
+					uploadInfo.Add(fileInfo.LastWriteTime.ToString());
+					uploadInfo.Add(statusMessage);
+					csvData.Add(uploadInfo);
+				}
 			}
 		}
 
@@ -311,7 +356,6 @@ namespace Binder.CLI
 
 
 	}
-
 
 
 }

@@ -8,7 +8,8 @@ namespace Binder.CLI
         private static void Main(string[] args)
         {
 			Args.InvokeAction<CommandLineArguments>(args);
-            Console.ReadKey();
+			Console.WriteLine("Upload complete. Press any key to exit.");
+			Console.ReadKey();
         }
 
     }

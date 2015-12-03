@@ -28,6 +28,10 @@ namespace Binder.CLI
 		[ArgDefaultValue(false)]
 		[ArgDescription(@"Force upload to check all pieces instead of just checking timestamps")]
 		public bool force { get; set; }
+
+		[ArgDescription(@"Outputs the upload data to a .csv file")]
+		[ArgExample(@"C:\MyData\Output.cvs","")]
+		public string csv { get; set; }
 // ReSharper restore InconsistentNaming
 
 
