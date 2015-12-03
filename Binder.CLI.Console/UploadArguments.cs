@@ -32,6 +32,11 @@ namespace Binder.CLI
 		[ArgDescription(@"Outputs the upload data to a .csv file")]
 		[ArgExample(@"C:\MyData\Output.cvs","")]
 		public string csv { get; set; }
+
+		[ArgDefaultValue(false)]
+		[ArgDescription(@"Application will remain open and wait for user input after upload completes")]
+		public bool wait { get; set; }
+		
 // ReSharper restore InconsistentNaming
 
 

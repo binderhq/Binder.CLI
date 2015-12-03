@@ -164,6 +164,12 @@ namespace Binder.CLI
 				
 			}
 
+			if (uploadArguments.wait)
+			{
+				Console.WriteLine("Upload complete. Press any key to exit.");
+				Console.ReadKey();
+			}
+
 
 
 
