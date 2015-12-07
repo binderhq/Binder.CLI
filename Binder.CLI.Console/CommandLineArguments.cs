@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using Binder.API.Models.Region.SiteNavigator;
 using Binder.API.Region.Foundation.FileAccess;
 using Binder.API.Region.RegionServices.Data.DTOs;
@@ -83,22 +82,11 @@ namespace Binder.CLI
 
 
 		const int fixedStorageZoneId = 1;
-		public List<List<String>> csvData = new List<List<string>>();
+		public string uploadInfo;
 
 		[ArgActionMethod, ArgDescription("Upload files or folders")]
 		public void upload(UploadArguments uploadArguments)
 		{
-			if (uploadArguments.csv != null)
-			{
-				List<string> headerInfo = new List<string>();
-				headerInfo.Add("Filename");
-				headerInfo.Add("Path");
-				headerInfo.Add("Size (B)");
-				headerInfo.Add("Last time modified");
-				headerInfo.Add("Upload status");
-				csvData.Add(headerInfo);
-			}
-
 			var site = GetAuthorisedSite();
 			var region = site.Region;
 		   
@@ -146,16 +134,14 @@ namespace Binder.CLI
 			if (uploadArguments.csv != null)
 			{
 				Console.WriteLine("Generating .csv file...");
-				
-				int length = csvData.Count;
-				StringBuilder sb = new StringBuilder();
-				
-				for (int index = 0; index < length; index++)
-					sb.AppendLine(string.Join(",", csvData[index]));
+
+				string headerInfo = "Filename,Path,Size (B),Last time modified,Upload status";
+				string csvData = headerInfo + "\n" + uploadInfo;
+
 				try
 				{
-					File.WriteAllText(uploadArguments.csv, sb.ToString());
-					Console.WriteLine(".csv file creating in directory " + uploadArguments.csv);
+					File.WriteAllText(uploadArguments.csv, csvData);
+					Console.WriteLine(".csv file created in directory " + uploadArguments.csv);
 				}
 				catch (Exception ex)
 				{
@@ -323,15 +309,8 @@ namespace Binder.CLI
 					statusMessage = ex.Message;
 				}
 				if (csv)
-				{
-					List<string> uploadInfo = new List<string>();
-					uploadInfo.Add(fileInfo.Name.ToString());
-					uploadInfo.Add(fileInfo.DirectoryName.ToString());
-					uploadInfo.Add(fileInfo.Length.ToString());
-					uploadInfo.Add(fileInfo.LastWriteTime.ToString());
-					uploadInfo.Add(statusMessage);
-					csvData.Add(uploadInfo);
-				}
+					uploadInfo = uploadInfo + "\n" + fileInfo.Name + "," + fileInfo.DirectoryName + "," + fileInfo.Length + "," + fileInfo.LastWriteTime + "," + statusMessage;
+					//Add new data to the end of the string for .CSV creation on a new line
 			}
 		}
 
