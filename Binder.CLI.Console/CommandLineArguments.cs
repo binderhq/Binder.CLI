@@ -228,8 +228,8 @@ namespace Binder.CLI
 		{
 			foreach (var file in files)
 			{
-				//string directoryName = Path.GetDirectoryName(file);
-				string fileName = Path.GetFileName(file);
+				//string directoryName = Path.GetDirectoryName(file)
+				string fileName = Path.GetFileName(file).Truncate(40);
 				string statusMessage = "";
 
 				Console.Write(fileName.PadRight(45) + " ");
@@ -309,7 +309,7 @@ namespace Binder.CLI
 					statusMessage = ex.Message;
 				}
 				if (csv)
-					uploadInfo = uploadInfo + "\n" + fileInfo.Name + "," + fileInfo.DirectoryName + "," + fileInfo.Length + "," + fileInfo.LastWriteTime + "," + statusMessage;
+					uploadInfo = uploadInfo + fileInfo.Name + "," + fileInfo.DirectoryName + "," + fileInfo.Length + "," + fileInfo.LastWriteTime + "," + statusMessage + "\n";
 					//Add new data to the end of the string for .CSV creation on a new line
 			}
 		}
@@ -338,8 +338,15 @@ namespace Binder.CLI
 
 
 
+	}
 
-
+	public static class StringExt
+	{
+		public static string Truncate(this string value, int maxLength)
+		{
+			if (string.IsNullOrEmpty(value)) return value;
+			return value.Length <= maxLength ? value : value.Substring(0, maxLength) + "...";
+		}
 	}
 
 
