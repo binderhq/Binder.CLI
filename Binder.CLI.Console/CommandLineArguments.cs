@@ -309,7 +309,7 @@ namespace Binder.CLI
 					statusMessage = ex.Message;
 				}
 				if (csv)
-					uploadInfo = uploadInfo + "\"" + fileInfo.Name + "\"" + "," + "\"" + fileInfo.DirectoryName + "\"" + "," + fileInfo.Length + "," + fileInfo.LastWriteTime + "," + statusMessage + "\n";
+					uploadInfo = uploadInfo + "\"" + fileInfo.Name + "\"" + "," + "\"" + fileInfo.DirectoryName + "\"" + "," + fileInfo.Length + "," + fileInfo.LastWriteTime + "," + "\"" + statusMessage + "\"" + "\n";
 					//Add new data to the end of the string for .CSV creation on a new line
 			}
 		}
