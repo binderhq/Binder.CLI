@@ -226,6 +226,10 @@ namespace Binder.CLI
 
 		private void UploadFiles(string[] files, Site binderSite, StorageEngine storageEngine, string destination, bool force, bool csv)
 		{
+			var site = GetAuthorisedSite();
+			var folderResponseMessage =
+			   new GetFolderOperation(site, destination, AuthorisedSession).ResponseMessage;
+			var siteFolderModel = folderResponseMessage.Content<SiteFolderModel>();
 			foreach (var file in files)
 			{
 				//string directoryName = Path.GetDirectoryName(file)
@@ -238,10 +242,6 @@ namespace Binder.CLI
 
 				try
 				{   
-					var site = GetAuthorisedSite();
-					var folderResponseMessage =
-					   new GetFolderOperation(site, destination, AuthorisedSession).ResponseMessage;
-					var siteFolderModel = folderResponseMessage.Content<SiteFolderModel>();
 
 					//find file with exact same filename
 					var uploadedFile = siteFolderModel.Files.Where(s => s.Name == fileInfo.Name).FirstOrDefault();
