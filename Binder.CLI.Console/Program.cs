@@ -8,7 +8,7 @@ namespace Binder.CLI
         private static void Main(string[] args)
         {
 			Args.InvokeAction<CommandLineArguments>(args);
-			//Console.ReadKey();
+			Console.ReadKey();
         }
 
     }
